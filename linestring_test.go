@@ -1,8 +1,9 @@
 package geom
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testLineString struct {
@@ -13,32 +14,15 @@ type testLineString struct {
 	bounds     *Bounds
 }
 
-func testLineStringEquals(t *testing.T, ls *LineString, tls *testLineString) {
-	if err := ls.verify(); err != nil {
-		t.Error(err)
-	}
-	if ls.Layout() != tls.layout {
-		t.Errorf("ls.Layout() == %v, want %v", ls.Layout(), tls.layout)
-	}
-	if ls.Stride() != tls.stride {
-		t.Errorf("ls.Stride() == %v, want %v", ls.Stride(), tls.stride)
-	}
-	if !reflect.DeepEqual(ls.Coords(), tls.coords) {
-		t.Errorf("ls.Coords() == %v, want %v", ls.Coords(), tls.coords)
-	}
-	if !reflect.DeepEqual(ls.FlatCoords(), tls.flatCoords) {
-		t.Errorf("ls.FlatCoords() == %v, want %v", ls.FlatCoords(), tls.flatCoords)
-	}
-	if !reflect.DeepEqual(ls.Bounds(), tls.bounds) {
-		t.Errorf("ls.Bounds() == %v, want %v", ls.Bounds(), tls.bounds)
-	}
-	if got := ls.NumCoords(); got != len(tls.coords) {
-		t.Errorf("ls.NumCoords() == %v, want %v", got, len(tls.coords))
-	}
-	for i, c := range tls.coords {
-		if !reflect.DeepEqual(ls.Coord(i), c) {
-			t.Errorf("ls.Coord(%v) == %v, want %v", i, ls.Coord(i), c)
-		}
+func assertLineStringEquals(t *testing.T, expected *testLineString, actual *LineString) {
+	assert.NoError(t, actual.verify())
+	assert.Equal(t, expected.layout, actual.Layout())
+	assert.Equal(t, expected.stride, actual.Stride())
+	assert.Equal(t, expected.coords, actual.Coords())
+	assert.Equal(t, expected.bounds, actual.Bounds())
+	assert.Equal(t, len(expected.coords), actual.NumCoords())
+	for i, c := range expected.coords {
+		assert.Equal(t, c, actual.Coord(i))
 	}
 }
 
@@ -88,15 +72,13 @@ func TestLineString(t *testing.T) {
 			},
 		},
 	} {
-		testLineStringEquals(t, c.ls, c.tls)
+		assertLineStringEquals(t, c.tls, c.ls)
 	}
 }
 
 func TestLineStringClone(t *testing.T) {
 	p1 := NewLineString(XY).MustSetCoords([]Coord{{1, 2}, {3, 4}, {5, 6}})
-	if p2 := p1.Clone(); aliases(p1.FlatCoords(), p2.FlatCoords()) {
-		t.Error("Clone() should not alias flatCoords")
-	}
+	assert.False(t, aliases(p1.FlatCoords(), p1.Clone().FlatCoords()))
 }
 
 func TestLineStringInterpolate(t *testing.T) {
@@ -115,21 +97,17 @@ func TestLineStringInterpolate(t *testing.T) {
 		{val: 2.0, dim: 2, i: 2, f: 0.0},
 		{val: 2.5, dim: 2, i: 2, f: 0.0},
 	} {
-		if i, f := ls.Interpolate(c.val, c.dim); i != c.i || f != c.f {
-			t.Errorf("ls.Interpolate(%v, %v) == %v, %v, want %v, %v", c.val, c.dim, i, f, c.i, c.f)
-		}
+		i, f := ls.Interpolate(c.val, c.dim)
+		assert.Equal(t, c.i, i)
+		assert.Equal(t, c.f, f)
 	}
 }
 
 func TestLineStringReserve(t *testing.T) {
 	ls := NewLineString(XYZM)
-	if got, want := cap(ls.flatCoords), 0; got != want {
-		t.Errorf("cap(ls.flatCoords) == %d, want %d", got, want)
-	}
+	assert.Equal(t, 0, cap(ls.flatCoords))
 	ls.Reserve(2)
-	if got, want := cap(ls.flatCoords), 8; got != want {
-		t.Errorf("cap(ls.flatCoords) == %d, want %d", got, want)
-	}
+	assert.Equal(t, 8, cap(ls.flatCoords))
 }
 
 func TestLineStringStrideMismatch(t *testing.T) {
@@ -169,9 +147,7 @@ func TestLineStringStrideMismatch(t *testing.T) {
 			err:    ErrStrideMismatch{Got: 3, Want: 2},
 		},
 	} {
-		p := NewLineString(c.layout)
-		if _, err := p.SetCoords(c.coords); err != c.err {
-			t.Errorf("p.SetCoords(%v) == %v, want %v", c.coords, err, c.err)
-		}
+		_, err := NewLineString(c.layout).SetCoords(c.coords)
+		assert.Equal(t, c.err, err)
 	}
 }

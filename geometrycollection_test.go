@@ -1,8 +1,9 @@
 package geom
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGeometryCollectionBounds(t *testing.T) {
@@ -54,9 +55,7 @@ func TestGeometryCollectionBounds(t *testing.T) {
 			want: NewBounds(XYZM).SetCoords(Coord{1, 2, 3, 6}, Coord{4, 5, 3, 6}),
 		},
 	} {
-		if got := NewGeometryCollection().MustPush(tc.geoms...).Bounds(); !reflect.DeepEqual(got, tc.want) {
-			t.Errorf("NewGeometryCollection().MustPush(%+v).Bounds() == %+v, want %+v", tc.geoms, got, tc.want)
-		}
+		assert.Equal(t, tc.want, NewGeometryCollection().MustPush(tc.geoms...).Bounds())
 	}
 }
 
@@ -115,9 +114,7 @@ func TestGeometryCollectionLayout(t *testing.T) {
 			want: XYZM,
 		},
 	} {
-		if got := NewGeometryCollection().MustPush(tc.geoms...).Layout(); got != tc.want {
-			t.Errorf("NewGeometryCollection().MustPush(%+v).Layout() == %s, want %s", tc.geoms, got, tc.want)
-		}
+		assert.Equal(t, tc.want, NewGeometryCollection().MustPush(tc.geoms...).Layout())
 	}
 }
 
@@ -149,8 +146,7 @@ func TestGeometryCollectionPush(t *testing.T) {
 			g:    NewPoint(XY).SetSRID(3857),
 		},
 	} {
-		if gotErr := NewGeometryCollection().SetSRID(tc.srid).MustPush(tc.geoms...).Push(tc.g); gotErr != tc.wantErr {
-			t.Errorf("NewGeometryCollection().SetSRID(%d).MustPush(%+v).Push(%+v) == %v, want %v", tc.srid, tc.geoms, tc.g, gotErr, tc.wantErr)
-		}
+		// FIXME this test is obviously wrong as wantErr is nil in every case
+		assert.Equal(t, tc.wantErr, NewGeometryCollection().SetSRID(tc.srid).MustPush(tc.geoms...).Push(tc.g))
 	}
 }

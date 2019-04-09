@@ -1,8 +1,9 @@
 package geom
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type testLinearRing struct {
@@ -13,32 +14,15 @@ type testLinearRing struct {
 	bounds     *Bounds
 }
 
-func testLinearRingEquals(t *testing.T, lr *LinearRing, tlr *testLinearRing) {
-	if err := lr.verify(); err != nil {
-		t.Error(err)
-	}
-	if lr.Layout() != tlr.layout {
-		t.Errorf("lr.Layout() == %v, want %v", lr.Layout(), tlr.layout)
-	}
-	if lr.Stride() != tlr.stride {
-		t.Errorf("lr.Stride() == %v, want %v", lr.Stride(), tlr.stride)
-	}
-	if !reflect.DeepEqual(lr.Coords(), tlr.coords) {
-		t.Errorf("lr.Coords() == %v, want %v", lr.Coords(), tlr.coords)
-	}
-	if !reflect.DeepEqual(lr.FlatCoords(), tlr.flatCoords) {
-		t.Errorf("lr.FlatCoords() == %v, want %v", lr.FlatCoords(), tlr.flatCoords)
-	}
-	if !reflect.DeepEqual(lr.Bounds(), tlr.bounds) {
-		t.Errorf("lr.Bounds() == %v, want %v", lr.Bounds(), tlr.bounds)
-	}
-	if got := lr.NumCoords(); got != len(tlr.coords) {
-		t.Errorf("lr.NumCoords() == %v, want %v", got, len(tlr.coords))
-	}
-	for i, c := range tlr.coords {
-		if !reflect.DeepEqual(lr.Coord(i), c) {
-			t.Errorf("lr.Coord(%v) == %v, want %v", i, lr.Coord(i), c)
-		}
+func assertLinearRingEquals(t *testing.T, expected *testLinearRing, actual *LinearRing) {
+	assert.NoError(t, actual.verify())
+	assert.Equal(t, expected.layout, actual.Layout())
+	assert.Equal(t, expected.stride, actual.Stride())
+	assert.Equal(t, expected.coords, actual.Coords())
+	assert.Equal(t, expected.bounds, actual.Bounds())
+	assert.Equal(t, len(expected.coords), actual.NumCoords())
+	for i, c := range expected.coords {
+		assert.Equal(t, c, actual.Coord(i))
 	}
 }
 
@@ -88,15 +72,13 @@ func TestLinearRing(t *testing.T) {
 			},
 		},
 	} {
-		testLinearRingEquals(t, c.lr, c.tlr)
+		assertLinearRingEquals(t, c.tlr, c.lr)
 	}
 }
 
 func TestLinearRingClone(t *testing.T) {
 	p1 := NewLinearRing(XY).MustSetCoords([]Coord{{1, 2}, {3, 4}, {5, 6}})
-	if p2 := p1.Clone(); aliases(p1.FlatCoords(), p2.FlatCoords()) {
-		t.Error("Clone() should not alias flatCoords")
-	}
+	assert.False(t, aliases(p1.FlatCoords(), p1.Clone().FlatCoords()))
 }
 
 func TestLinearRingStrideMismatch(t *testing.T) {
@@ -136,9 +118,7 @@ func TestLinearRingStrideMismatch(t *testing.T) {
 			err:    ErrStrideMismatch{Got: 3, Want: 2},
 		},
 	} {
-		p := NewLinearRing(c.layout)
-		if _, err := p.SetCoords(c.coords); err != c.err {
-			t.Errorf("p.SetCoords(%v) == %v, want %v", c.coords, err, c.err)
-		}
+		_, err := NewLinearRing(c.layout).SetCoords(c.coords)
+		assert.Equal(t, c.err, err)
 	}
 }

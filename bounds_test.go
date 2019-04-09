@@ -1,8 +1,9 @@
 package geom
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBoundsExtend(t *testing.T) {
@@ -52,14 +53,12 @@ func TestBoundsExtend(t *testing.T) {
 			want: NewBounds(XYZM).SetCoords(Coord{-1, -1, -1, 0}, Coord{11, 11, 11, 10}),
 		},
 	} {
-		if got := tc.b.Clone().Extend(tc.g); !reflect.DeepEqual(got, tc.want) {
-			t.Errorf("%+v.Extend(%+v) == %+v, want %+v", tc.b, tc.g, got, tc.want)
-		}
+		assert.Equal(t, tc.want, tc.b.Clone().Extend(tc.g))
 	}
 }
 
 func TestBoundsIsEmpty(t *testing.T) {
-	for i, testData := range []struct {
+	for _, testData := range []struct {
 		bounds  Bounds
 		isEmpty bool
 	}{
@@ -78,22 +77,14 @@ func TestBoundsIsEmpty(t *testing.T) {
 		copy := Bounds{layout: testData.bounds.layout, min: testData.bounds.min, max: testData.bounds.max}
 		for j := 0; j < 10; j++ {
 			// do multiple checks to verify no obvious side effects are caused
-			isEmpty := copy.IsEmpty()
-			if isEmpty != testData.isEmpty {
-				t.Errorf("Test %v Failed.  Expected: %v but got: %v", i+1, testData.isEmpty, isEmpty)
-				break
-			}
-			if !reflect.DeepEqual(copy, testData.bounds) {
-				t.Errorf("Test %v Failed.  Function IsEmpty modified internal state of bounds.  Before: \n%v After: \n%v", i+1, testData.bounds, copy)
-				break
-			}
+			assert.Equal(t, testData.isEmpty, copy.IsEmpty())
+			assert.Equal(t, testData.bounds, copy)
 		}
-
 	}
 }
 
 func TestBoundsOverlaps(t *testing.T) {
-	for i, testData := range []struct {
+	for _, testData := range []struct {
 		bounds, other Bounds
 		overlaps      bool
 	}{
@@ -131,22 +122,14 @@ func TestBoundsOverlaps(t *testing.T) {
 		copy := Bounds{layout: testData.bounds.layout, min: testData.bounds.min, max: testData.bounds.max}
 		for j := 0; j < 10; j++ {
 			// do multiple checks to verify no obvious side effects are caused
-			overlaps := copy.Overlaps(testData.bounds.layout, &testData.other)
-			if overlaps != testData.overlaps {
-				t.Errorf("Test %v Failed.  Expected: %v but got: %v", i+1, testData.overlaps, overlaps)
-				break
-			}
-			if !reflect.DeepEqual(copy, testData.bounds) {
-				t.Errorf("Test %v Failed.  Function Overlaps modified internal state of bounds.  Before: \n%v After: \n%v", i+1, testData.bounds, copy)
-				break
-			}
+			assert.Equal(t, testData.overlaps, copy.Overlaps(testData.bounds.layout, &testData.other))
+			assert.Equal(t, testData.bounds, copy)
 		}
-
 	}
 }
 
 func TestBoundsOverlapsPoint(t *testing.T) {
-	for i, testData := range []struct {
+	for _, testData := range []struct {
 		bounds   Bounds
 		point    Coord
 		overlaps bool
@@ -180,15 +163,8 @@ func TestBoundsOverlapsPoint(t *testing.T) {
 		copy := Bounds{layout: testData.bounds.layout, min: testData.bounds.min, max: testData.bounds.max}
 		for j := 0; j < 10; j++ {
 			// do multiple checks to verify no obvious side effects are caused
-			overlaps := copy.OverlapsPoint(testData.bounds.layout, testData.point)
-			if overlaps != testData.overlaps {
-				t.Errorf("Test %v Failed.  Expected: %v but got: %v", i+1, testData.overlaps, overlaps)
-				break
-			}
-			if !reflect.DeepEqual(copy, testData.bounds) {
-				t.Errorf("Test %v Failed.  Function Overlaps modified internal state of bounds.  Before: \n%v After: \n%v", i+1, testData.bounds, copy)
-				break
-			}
+			assert.Equal(t, testData.overlaps, copy.OverlapsPoint(testData.bounds.layout, testData.point))
+			assert.Equal(t, testData.bounds, copy)
 		}
 	}
 }
@@ -227,9 +203,7 @@ func TestBoundsPolygon(t *testing.T) {
 			want: NewPolygon(XY).MustSetCoords([][]Coord{{{1, 2}, {1, 5}, {4, 5}, {4, 2}, {1, 2}}}),
 		},
 	} {
-		if got := tc.b.Polygon(); !reflect.DeepEqual(tc.want, got) {
-			t.Errorf("%v.Polygon() == %v, want %v", tc.b, got, tc.want)
-		}
+		assert.Equal(t, tc.want, tc.b.Polygon())
 	}
 }
 
@@ -237,38 +211,23 @@ func TestBoundsSet(t *testing.T) {
 	bounds := Bounds{layout: XY, min: Coord{0, 0}, max: Coord{10, 10}}
 	bounds.Set(0, 0, 20, 20)
 	expected := Bounds{layout: XY, min: Coord{0, 0}, max: Coord{20, 20}}
-	if !reflect.DeepEqual(expected, bounds) {
-		t.Errorf("Expected %v but got %v", expected, bounds)
-	}
-	func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("Expected a panic but didn't get it as expected")
-			} else if !reflect.DeepEqual(expected, bounds) {
-				t.Errorf("Set modified bounds even though error was thrown. Before %v after %v", expected, bounds)
-			}
-		}()
+	assert.Equal(t, expected, bounds)
+	assert.Panics(t, func() {
 		bounds.Set(2, 2, 2, 2, 2)
-	}()
+	})
 }
 
 func TestBoundsSetCoords(t *testing.T) {
 	bounds := &Bounds{layout: XY, min: Coord{0, 0}, max: Coord{10, 10}}
 	bounds.SetCoords(Coord{0, 0}, Coord{20, 20})
 	expected := Bounds{layout: XY, min: Coord{0, 0}, max: Coord{20, 20}}
-	if !reflect.DeepEqual(expected, *bounds) {
-		t.Errorf("Expected %v but got %v", expected, *bounds)
-	}
+	assert.Equal(t, expected, *bounds)
 
 	bounds = NewBounds(XY)
 	bounds.SetCoords(Coord{0, 0}, Coord{20, 20})
-	if !reflect.DeepEqual(expected, *bounds) {
-		t.Errorf("Expected %v but got %v", expected, *bounds)
-	}
+	assert.Equal(t, expected, *bounds)
 
 	bounds = NewBounds(XY)
 	bounds.SetCoords(Coord{20, 0}, Coord{0, 20}) // set coords should ensure valid min / max
-	if !reflect.DeepEqual(expected, *bounds) {
-		t.Errorf("Expected %v but got %v", expected, *bounds)
-	}
+	assert.Equal(t, expected, *bounds)
 }
