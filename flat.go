@@ -384,5 +384,5 @@ func length3(flatCoords []float64, offset int, endss [][]int, stride int) float6
 		length += length2(flatCoords, offset, ends, stride)
 		offset = ends[len(ends)-1]
 	}
-	return length
+	return length2
 }
